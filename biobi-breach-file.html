@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BIOBI // BREACH FILE — Case Zero</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0a0b09;
+    --bg-soft: #0f100c;
+    --panel: #14140f;
+    --panel-alt: #1b1b13;
+    --panel-raised: #201f16;
+    --border: #33301f;
+    --border-soft: #262418;
+    --amber: #ffb020;
+    --amber-bright: #ffcc66;
+    --amber-dim: #8a5f14;
+    --amber-faint: #4a3714;
+    --cyan: #4fd1e8;
+    --cyan-dim: #2a6b78;
+    --crimson: #e6423b;
+    --crimson-dim: #7a2622;
+    --success: #7fd858;
+    --success-dim: #3f6b2c;
+    --paper: #d9cdae;
+    --paper-dim: #9c9276;
+    --ink: #0a0b09;
+    --mono: 'IBM Plex Mono', ui-monospace, 'Courier New', monospace;
+    --serif: 'Spectral', Georgia, serif;
+    --radius: 3px;
+  }
+
+  *{ box-sizing: border-box; }
+  html, body{ height:100%; }
+  body{
+    margin:0;
+    background: var(--bg);
+    color: var(--paper);
+    font-family: var(--mono);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  ::selection{ background: var(--amber); color: var(--ink); }
+
+  a{ color: var(--cyan); }
+
+  /* subtle scanline / vignette atmosphere */
+  body::before{
+    content:"";
+    position: fixed; inset:0;
+    pointer-events:none;
+    z-index: 500;
+    background: repeating-linear-gradient(
+      to bottom,
+      rgba(255,255,255,0.018) 0px,
+      rgba(255,255,255,0.018) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+    mix-blend-mode: overlay;
+    opacity: .5;
+  }
+  body::after{
+    content:"";
+    position: fixed; inset:0;
+    pointer-events:none;
+    z-index: 499;
+    background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.55) 130%);
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+  }
+
+  button{ font-family: var(--mono); cursor:pointer; }
+  input, textarea{ font-family: var(--mono); }
+
+  /* ---------- BOOT SCREEN ---------- */
+  #boot{
+    position: fixed; inset:0;
+    background: var(--bg);
+    z-index: 1000;
+    display:flex; align-items:center; justify-content:center;
+    padding: 24px;
+  }
+  #boot-inner{
+    width: 100%; max-width: 720px;
+    color: var(--amber);
+  }
+  #boot-lines{
+    font-size: 14px;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    min-height: 260px;
+  }
+  .boot-cursor{
+    display:inline-block; width:8px; height:16px;
+    background: var(--amber);
+    animation: blink 1s steps(1) infinite;
+    vertical-align: -2px;
+  }
+  @keyframes blink{ 50%{ opacity:0; } }
+  #boot-enter{
+    margin-top: 28px;
+    display:none;
+  }
+  #boot-enter button{
+    background: transparent;
+    border: 1px solid var(--amber-dim);
+    color: var(--amber);
+    padding: 12px 22px;
+    font-size: 13px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    border-radius: var(--radius);
+    transition: all .15s ease;
+  }
+  #boot-enter button:hover{
+    background: var(--amber);
+    color: var(--ink);
+    box-shadow: 0 0 24px rgba(255,176,32,.35);
+  }
+  #boot-resume{
+    margin-top: 14px;
+    font-size: 11px;
+    color: var(--paper-dim);
+  }
+  #boot-resume a{ color: var(--cyan); cursor:pointer; text-decoration: underline; }
+
+  /* ---------- APP SHELL ---------- */
+  #app{
+    display:none;
+    min-height: 100vh;
+    grid-template-columns: 300px 1fr;
+    display:grid;
+  }
+
+  #topbar{
+    grid-column: 1 / -1;
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 20px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top:0; z-index: 50;
+    flex-wrap: wrap;
+  }
+  .brand{
+    display:flex; align-items:center; gap:10px;
+    font-size: 13px; letter-spacing:.14em; text-transform:uppercase;
+    color: var(--amber);
+  }
+  .brand .dot{
+    width:8px; height:8px; border-radius:50%;
+    background: var(--success);
+    box-shadow: 0 0 8px var(--success);
+    animation: pulse 2.2s ease-in-out infinite;
+  }
+  @keyframes pulse{ 0%,100%{ opacity:1;} 50%{ opacity:.35; } }
+
+  .topbar-mid{
+    display:flex; align-items:center; gap:22px;
+    font-size: 11px; color: var(--paper-dim);
+    flex-wrap: wrap;
+  }
+  .clock{
+    color: var(--crimson);
+    font-weight:600;
+    letter-spacing:.05em;
+  }
+  .clock b{ color: var(--paper); font-weight:500; }
+  .progress-chip{
+    color: var(--paper-dim);
+  }
+  .progress-chip b{ color: var(--amber); }
+
+  .topbar-actions{ display:flex; gap:10px; align-items:center; }
+  .btn{
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--paper);
+    padding: 8px 14px;
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    border-radius: var(--radius);
+    transition: all .15s ease;
+  }
+  .btn:hover{ border-color: var(--amber-dim); color: var(--amber); }
+  .btn.primary{ border-color: var(--amber-dim); color: var(--amber); }
+  .btn.primary:hover{ background: var(--amber); color: var(--ink); }
+  .btn:focus-visible, a:focus-visible, input:focus-visible, button:focus-visible{
+    outline: 2px solid var(--cyan); outline-offset: 2px;
+  }
+
+  /* ---------- SIDEBAR / EVIDENCE BOARD ---------- */
+  #sidebar{
+    background: var(--bg-soft);
+    border-right: 1px solid var(--border);
+    padding: 16px 10px 40px;
+    overflow-y: auto;
+    max-height: calc(100vh - 53px);
+  }
+  .sidebar-label{
+    font-size: 10px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--paper-dim);
+    padding: 6px 10px 10px;
+  }
+  .case-tab{
+    display:flex; align-items:center; gap:10px;
+    padding: 10px 10px;
+    margin-bottom: 3px;
+    border-radius: var(--radius);
+    border: 1px solid transparent;
+    cursor:pointer;
+    transition: background .12s ease, border-color .12s ease;
+  }
+  .case-tab:hover{ background: var(--panel); }
+  .case-tab.active{ background: var(--panel-alt); border-color: var(--border); }
+  .case-seal{
+    flex: 0 0 auto;
+    width: 26px; height:26px;
+    border-radius:50%;
+    border: 1.5px solid var(--amber-dim);
+    display:flex; align-items:center; justify-content:center;
+    font-size: 11px;
+    color: var(--amber-dim);
+    transition: all .35s cubic-bezier(.4,1.6,.4,1);
+    flex-shrink:0;
+  }
+  .case-tab.solved .case-seal{
+    border-color: var(--success);
+    color: var(--success);
+    background: rgba(127,216,88,.08);
+    transform: rotate(360deg);
+  }
+  .case-meta{ min-width:0; flex:1; }
+  .case-file-no{
+    font-size: 9px; letter-spacing:.1em; color: var(--paper-dim); text-transform:uppercase;
+  }
+  .case-title{
+    font-size: 12px; color: var(--paper);
+    white-space: nowrap; overflow:hidden; text-overflow: ellipsis;
+  }
+  .case-tab.solved .case-title{ color: var(--success); }
+  .case-dots{ font-size:9px; color: var(--amber-dim); letter-spacing:1px; margin-top:2px; }
+
+  /* ---------- MAIN PANEL ---------- */
+  #main{
+    padding: 28px 32px 80px;
+    max-width: 880px;
+    width:100%;
+  }
+  .file-eyebrow{
+    font-size: 11px; letter-spacing:.16em; text-transform:uppercase;
+    color: var(--amber-dim);
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    margin-bottom: 6px;
+  }
+  .tag-chip{
+    border: 1px solid var(--border);
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 9px;
+    color: var(--cyan);
+    letter-spacing: .08em;
+  }
+  .dots-chip{ color: var(--amber); letter-spacing:2px; }
+
+  h1.case-heading{
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: 30px;
+    color: var(--paper);
+    margin: 0 0 18px;
+    line-height:1.25;
+  }
+
+  .briefing{
+    font-family: var(--serif);
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--paper);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--amber-dim);
+    padding: 18px 22px;
+    border-radius: var(--radius);
+    margin-bottom: 22px;
+    white-space: pre-wrap;
+  }
+
+  .puzzle-box{
+    background: #0d0e0a;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    margin-bottom: 18px;
+    font-size: 13.5px;
+    line-height: 1.85;
+    color: var(--amber-bright);
+    word-break: break-word;
+    white-space: pre-wrap;
+  }
+  .puzzle-box .label{
+    display:block; color: var(--paper-dim); font-size: 10px; letter-spacing:.12em; text-transform:uppercase; margin-bottom:8px;
+  }
+  .puzzle-box code, .puzzle-box .cipherval{
+    color: var(--cyan);
+  }
+
+  .decoy-grid{
+    display:flex; flex-wrap:wrap; gap: 8px;
+  }
+  .decoy-tag{
+    border:1px solid var(--border-soft);
+    background: var(--panel-alt);
+    color: var(--paper-dim);
+    font-size: 10px;
+    padding: 5px 8px;
+    border-radius: var(--radius);
+  }
+
+  .hints{ margin-bottom: 18px; display:flex; gap:10px; flex-wrap:wrap; }
+  .hint-btn{
+    background: transparent;
+    border: 1px dashed var(--border);
+    color: var(--paper-dim);
+    padding: 7px 12px;
+    font-size: 11px;
+    border-radius: var(--radius);
+  }
+  .hint-btn:hover{ color: var(--cyan); border-color: var(--cyan-dim); }
+  .hint-text{
+    font-family: var(--serif);
+    font-style: italic;
+    color: var(--cyan);
+    font-size: 13.5px;
+    background: rgba(79,209,232,.06);
+    border: 1px solid var(--cyan-dim);
+    padding: 10px 14px;
+    border-radius: var(--radius);
+    margin-top: 8px;
+    max-width: 100%;
+  }
+
+  .submit-row{
+    display:flex; gap:10px; align-items:stretch; margin-bottom: 12px; flex-wrap:wrap;
+  }
+  .prompt-wrap{
+    flex:1; min-width: 220px;
+    display:flex; align-items:center;
+    background: #0d0e0a;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0 12px;
+  }
+  .prompt-wrap .prefix{ color: var(--success); font-size:13px; white-space:nowrap; margin-right:6px; }
+  .prompt-wrap input{
+    flex:1; background:transparent; border:none; outline:none;
+    color: var(--amber-bright); font-size: 14px; padding: 12px 4px;
+    min-width: 0;
+  }
+  .prompt-wrap input::placeholder{ color: var(--paper-dim); }
+
+  .feedback{
+    font-size: 12.5px; margin-bottom: 16px; min-height: 18px;
+    letter-spacing:.02em;
+  }
+  .feedback.ok{ color: var(--success); }
+  .feedback.bad{ color: var(--crimson); }
+
+  .dossier-unlock{
+    display:none;
+    font-family: var(--serif);
+    font-size: 15px;
+    line-height: 1.8;
+    color: var(--paper);
+    background: linear-gradient(180deg, rgba(127,216,88,.07), rgba(127,216,88,.02));
+    border: 1px solid var(--success-dim);
+    border-left: 3px solid var(--success);
+    padding: 18px 22px;
+    border-radius: var(--radius);
+    white-space: pre-wrap;
+  }
+  .dossier-unlock .du-label{
+    display:block; font-family: var(--mono); font-size:10px; letter-spacing:.14em; text-transform:uppercase; color: var(--success); margin-bottom:8px;
+  }
+
+  /* terminal widget */
+  .term{
+    background: #060704;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    font-size: 13px;
+    color: var(--amber);
+    height: 260px;
+    display:flex; flex-direction:column;
+    margin-bottom: 18px;
+  }
+  .term-out{
+    flex:1; overflow-y:auto; white-space: pre-wrap; line-height:1.65; padding-right:4px;
+  }
+  .term-out .term-cmd{ color: var(--cyan); }
+  .term-out .term-err{ color: var(--crimson); }
+  .term-line-in{
+    display:flex; align-items:center; margin-top:8px; border-top: 1px solid var(--border-soft); padding-top:8px;
+  }
+  .term-line-in .prefix{ color: var(--success); margin-right:6px; white-space:nowrap; }
+  .term-line-in input{
+    flex:1; background:transparent; border:none; outline:none; color: var(--amber-bright); font-size:13px;
+  }
+
+  /* welcome / finale */
+  .welcome-panel{
+    font-family: var(--serif);
+  }
+  .welcome-panel h1{
+    font-size: 36px; margin: 0 0 14px; color: var(--paper);
+  }
+  .welcome-panel p{ font-size: 16px; line-height:1.8; }
+  .stat-row{
+    display:flex; gap: 30px; margin: 26px 0; flex-wrap:wrap;
+  }
+  .stat{ font-family: var(--mono); }
+  .stat b{ display:block; font-size: 28px; color: var(--amber); }
+  .stat span{ font-size: 10px; letter-spacing:.1em; text-transform:uppercase; color: var(--paper-dim); }
+
+  /* toolkit drawer */
+  #toolkit-overlay{
+    position: fixed; inset:0; background: rgba(0,0,0,.55);
+    z-index: 800; display:none;
+  }
+  #toolkit{
+    position: fixed; top:0; right:0; bottom:0;
+    width: min(420px, 100vw);
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    z-index: 801;
+    padding: 20px;
+    overflow-y: auto;
+    transform: translateX(100%);
+    transition: transform .25s ease;
+  }
+  #toolkit.open{ transform: translateX(0); }
+  #toolkit-overlay.open{ display:block; }
+  .tk-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px; }
+  .tk-head h2{ font-size:14px; letter-spacing:.1em; text-transform:uppercase; color: var(--amber); margin:0; }
+  .tk-sub{ font-size: 11px; color: var(--paper-dim); margin-bottom: 18px; line-height:1.6; }
+  .tk-close{ background:none; border:none; color: var(--paper-dim); font-size: 20px; line-height:1; }
+  .tk-tool{
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 12px 14px; margin-bottom: 12px; background: var(--panel-alt);
+  }
+  .tk-tool h3{ font-size: 11.5px; letter-spacing:.05em; color: var(--cyan); margin: 0 0 8px; text-transform:uppercase; }
+  .tk-tool label{ font-size: 10px; color: var(--paper-dim); display:block; margin: 6px 0 3px; }
+  .tk-tool input[type=text], .tk-tool input[type=number], .tk-tool textarea{
+    width:100%; background:#0d0e0a; border:1px solid var(--border); color: var(--paper);
+    border-radius: var(--radius); padding: 7px 9px; font-size: 12px; resize: vertical;
+  }
+  .tk-row{ display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
+  .tk-row .btn{ flex:1; }
+  .tk-out{
+    margin-top:8px; font-size:12px; color: var(--success); word-break: break-word; min-height:16px;
+    background:#0d0e0a; border:1px solid var(--border-soft); border-radius: var(--radius); padding:8px 9px;
+  }
+
+  /* responsive */
+  @media (max-width: 880px){
+    #app{ grid-template-columns: 1fr; }
+    #sidebar{
+      max-height: none; border-right:none; border-bottom:1px solid var(--border);
+      display:flex; overflow-x:auto; overflow-y:hidden; gap:4px; padding: 12px 10px;
+    }
+    .sidebar-label{ display:none; }
+    .case-tab{ flex: 0 0 auto; min-width: 190px; margin-bottom:0; }
+    #main{ padding: 22px 16px 60px; }
+    h1.case-heading{ font-size: 24px; }
+    .topbar-mid{ order:3; width:100%; justify-content:space-between; }
+  }
+
+  .visually-hidden-flag{ position:absolute; width:0; height:0; overflow:hidden; }
+</style>
+</head>
+<body>
+
+<!-- ============ BOOT SCREEN ============ -->
+<div id="boot">
+  <div id="boot-inner">
+    <div id="boot-lines"><span class="boot-cursor"></span></div>
+    <div id="boot-enter">
+      <button id="boot-begin-btn">Begin Investigation</button>
+      <div id="boot-resume">Already have a resume code? <a id="boot-resume-link">Enter it here</a>.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app">
+  <div id="topbar">
+    <div class="brand"><span class="dot"></span> BIOBI // BREACH FILE</div>
+    <div class="topbar-mid">
+      <div class="clock">DEAL CLOCK <b id="clock-display">02:59:59</b></div>
+      <div class="progress-chip">FILES RECOVERED <b id="progress-display">0 / 22</b></div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn" id="save-code-btn">Resume Code</button>
+      <button class="btn primary" id="toolkit-btn">Toolkit</button>
+    </div>
+  </div>
+
+  <div id="sidebar">
+    <div class="sidebar-label">Evidence Board</div>
+    <div id="case-list"></div>
+  </div>
+
+  <div id="main"></div>
+</div>
+
+<!-- ============ TOOLKIT DRAWER ============ -->
+<div id="toolkit-overlay"></div>
+<div id="toolkit">
+  <div class="tk-head">
+    <h2>Analyst Toolkit</h2>
+    <button class="tk-close" id="tk-close-btn" aria-label="Close toolkit">&times;</button>
+  </div>
+  <div class="tk-sub">General-purpose decoding utilities. Nothing here is case-specific — figuring out which tool applies to which piece of evidence is part of the job.</div>
+  <div id="toolkit-tools"></div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================================================
+   UTILITY: ENCODERS / DECODERS
+   ============================================================ */
+const Codec = {
+  b64encode: s => btoa(unescape(encodeURIComponent(s))),
+  b64decode: s => { try { return decodeURIComponent(escape(atob(s.trim()))); } catch(e){ return null; } },
+  hexEncode: s => Array.from(s).map(c => c.charCodeAt(0).toString(16).padStart(2,'0')).join(''),
+  hexDecode: s => {
+    const clean = s.replace(/[^0-9a-fA-F]/g,'');
+    if(clean.length % 2 !== 0) return null;
+    let out = '';
+    for(let i=0;i<clean.length;i+=2){ out += String.fromCharCode(parseInt(clean.substr(i,2),16)); }
+    return out;
+  },
+  rot13: s => s.replace(/[a-zA-Z]/g, c => {
+    const base = c <= 'Z' ? 65 : 97;
+    return String.fromCharCode((c.charCodeAt(0)-base+13)%26+base);
+  }),
+  caesar: (s, shift) => s.replace(/[a-zA-Z]/g, c => {
+    const base = c <= 'Z' ? 65 : 97;
+    const sh = ((shift % 26) + 26) % 26;
+    return String.fromCharCode((c.charCodeAt(0)-base+sh)%26+base);
+  }),
+  toBinary: s => Array.from(s).map(c => c.charCodeAt(0).toString(2).padStart(8,'0')).join(' '),
+  fromBinary: s => {
+    const groups = s.trim().split(/\s+/).filter(Boolean);
+    try { return groups.map(g => String.fromCharCode(parseInt(g,2))).join(''); } catch(e){ return null; }
+  },
+  morseTable: {a:'.-',b:'-...',c:'-.-.',d:'-..',e:'.',f:'..-.',g:'--.',h:'....',i:'..',j:'.---',k:'-.-',l:'.-..',m:'--',n:'-.',o:'---',p:'.--.',q:'--.-',r:'.-.',s:'...',t:'-',u:'..-',v:'...-',w:'.--',x:'-..-',y:'-.--',z:'--..','_':'..--.-'},
+  toMorse: s => Array.from(s.toLowerCase()).map(c => Codec.morseTable[c] || c).join(' '),
+  fromMorse: s => {
+    const rev = {};
+    Object.keys(Codec.morseTable).forEach(k => rev[Codec.morseTable[k]] = k);
+    return s.trim().split(/\s+/).map(g => rev[g] !== undefined ? rev[g] : '?').join('');
+  },
+  xorSingle: (bytesOrText, key, inputIsBytes) => {
+    let bytes;
+    if(inputIsBytes){
+      bytes = bytesOrText.split(',').map(x => parseInt(x.trim(),10));
+    } else {
+      bytes = Array.from(bytesOrText).map(c => c.charCodeAt(0));
+    }
+    return bytes.map(b => b ^ (key & 0xFF));
+  },
+  xorRepeating: (bytesCsv, keyText) => {
+    const bytes = bytesCsv.split(',').map(x => parseInt(x.trim(),10));
+    return bytes.map((b,i) => b ^ keyText.charCodeAt(i % keyText.length));
+  },
+  bytesToText: arr => arr.map(n => String.fromCharCode(((n % 256)+256)%256)).join(''),
+};
+
+async function sha256Hex(str){
+  const enc = new TextEncoder().encode(str);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+/* ============================================================
+   CHALLENGE DATA
+   ============================================================ */
+const CASES = [
+{
+  id:1, title:"First Contact", category:"SOURCE", diff:1,
+  briefing:"An anonymous message reached you an hour ago: coordinates, a login page, nothing else. The Handler said the first door is never really locked — you just have to know how to look behind it.\n\nRight-click this panel and choose Inspect. Somewhere in the markup, someone left a note.",
+  hints:[
+    "Web pages carry more than what's rendered on screen. Developer tools let you read the raw structure underneath.",
+    "Open DevTools (F12, or right-click → Inspect) and look through the Elements panel for an HTML comment inside this panel."
+  ],
+  render: () => `<div class="puzzle-box"><span class="label">Panel contents</span>Nothing appears to be visible here. That doesn't mean nothing is here.<!-- CASE FILE 01: BIOBI{ghost_in_the_wire} --></div>`,
+  unlock: "TRANSMISSION — THE HANDLER: 'Good, you found it. That's lesson one: BIOBI builds beautiful front doors and leaves the back ones held together with comments and good intentions. There will be twenty-one more doors. Some are behind code. Some are behind people. Find them all, and you'll understand what Wraith really is.'",
+  answerHash:"48c99430d5023b1bfa8bbf046544136dffac2ad44138dbc8f00ae4894c683d9f"
+},
+{
+  id:2, title:"The First Cipher", category:"CIPHER", diff:1,
+  briefing:"A fragment intercepted from an internal BIOBI memo, encoded for transit. It's a common transport encoding — the kind every browser can undo without breaking a sweat.",
+  hints:[
+    "This alphabet uses A–Z, a–z, 0–9, +, /, and often ends in = padding. That's a strong clue.",
+    "It's Base64. Use the Toolkit panel (top right) or any Base64 decoder to reverse it."
+  ],
+  render: () => `<div class="puzzle-box"><span class="label">Intercepted fragment</span><span class="cipherval">bm9ydGhfc3Rhcg==</span></div>`,
+  unlock: "CASE NOTE: The memo references a project codename repeated across dozens of internal documents — 'Wraith.' No description, no department listed. Just a name that keeps recurring, like something meant to stay half-visible.",
+  answerHash:"f4a3c38b890d15a126f44e52fc6b63b82d0d47abb0e0a0d5490c1c1869873738"
+},
+{
+  id:3, title:"Ledger Fragment", category:"CIPHER", diff:1,
+  briefing:"A financial ledger entry, exported in raw bytes. Someone converted it to keep prying eyes out — or so they thought.",
+  hints:[
+    "Every two characters here represents one byte. That's a giveaway for a very common encoding.",
+    "It's hexadecimal. Convert each pair of hex digits to its ASCII character — the Toolkit can do this instantly."
+  ],
+  render: () => `<div class="puzzle-box"><span class="label">Raw export</span><span class="cipherval">736861646f775f6c6564676572</span></div>`,
+  unlock: "CASE NOTE: A shell company, 'Meridian Holdings,' appears throughout BIOBI's ledgers with no public records. Payments flow to Meridian on the same dates BIOBI reported 'infrastructure licensing' revenue. Something is being sold that isn't in any product catalogue.",
+  answerHash:"d423ce5fe4fd0d2c165afe04ff50c3236bb48264173a5777e26957dd8a0e7d7f"
+},
+{
+  id:4, title:"Warm-Up Riddle", category:"LOGIC", diff:1,
+  briefing:"Taped inside a desk drawer, in handwriting that isn't The Handler's:\n\n\"I have keys but no locks. I have space but no room. You can enter, but you can't go inside. What am I?\"",
+  hints:[
+    "You're touching one of these right now, or you will be shortly to type your answer.",
+    "Think about the object in front of you that you use to type."
+  ],
+  render: () => `<div class="puzzle-box"><span class="label">Riddle</span>Answer in one lowercase word.</div>`,
+  unlock: "CASE NOTE: The handwriting matches personnel records for a BIOBI security architect who hasn't badged into the building in six weeks. Her calendar is empty. Her desk was never cleared out.",
+  answerHash:"50e40f83fc8d5df9b50461b6e5ac9898126f3cb5a6799005021b6a64d1a149fd"
+},
+{
+  id:5, title:"Old Habits", category:"CIPHER", diff:2,
+  briefing:"A note pinned above a decommissioned workstation reads: \"The old man's cipher — he always used seven.\" Beneath it, scrawled in pencil, one word.",
+  hints:[
+    "This is one of the oldest ciphers in existence — each letter is simply shifted along the alphabet by a fixed number.",
+    "Shift each letter BACK by 7 (a Caesar cipher). The Toolkit's Caesar tool can do this for any shift instantly — just use shift -7, or shift 19."
+  ],
+  render: () => `<div class="puzzle-box"><span class="label">Scrawled note (shift: 7)</span><span class="cipherval">dhajoavdly</span></div>`,
+  unlock: "CASE NOTE: 'Watchtower' is the internal name for BIOBI's global monitoring dashboard — the control room where every connected city feed converges into a single map. Access is restricted to eleven people. Only ten still work there.",
+  answerHash:"828e76832f94853e61f4ae80888461af2a3ec80f2e82556b8b066b7ffea20d81"
+},
+{
+  id:6, title:"Needle in the Haystack", category:"SOURCE", diff:2,
+  briefing:"This evidence board is covered in tags — mostly noise, planted to waste your time. One tag among them is real. Inspect the elements and check their data attributes.",
+  hints:[
+    "There are far more decoys here than in Case 01. Use your browser's element search, or scan attribute-by-attribute in DevTools.",
+    "Look for a data-tag attribute whose value actually follows the BIOBI{...} flag format — the decoys deliberately don't."
+  ],
+  render: () => {
+    const decoys = ["BB-2291-A","BB-0087-C","REDACTED","BB-4471-Z","CLASSIFIED","BB-1120-Q","BB-9902-B",
+      "BB-3345-X","PENDING","BB-6610-M","BB-7781-P","BB-2298-D","BB-5567-R","BB-0012-T","BB-8834-K",
+      "BB-1199-W","BB-4402-S","BB-7710-N","BB-3321-H","BB-6693-Y"];
+    let html = `<div class="puzzle-box"><span class="label">Evidence tags (inspect the DOM)</span><div class="decoy-grid">`;
+    const insertAt = 11;
+    decoys.forEach((d,i)=>{
+      if(i === insertAt){ html += `<span class="decoy-tag" data-tag="BIOBI{hidden_in_plain_sight}">TAG</span>`; }
+      html += `<span class="decoy-tag" data-tag="${d}">TAG</span>`;
+    });
+    html += `</div></div>`;
+    return html;
+  },
+  unlock: "CASE NOTE: BIOBI's PR team ran a disinformation drill two months ago, flooding internal boards with fake incident reports to see how fast staff could spot the real one. Someone in Legal called it 'training.' Someone in Security called it something else, in a message that has since been deleted — but not everywhere.",
+  answerHash:"1f1ab4cf05bb1a984da5551b602e9055d230326116e4429aa73759af3c01daff"
+},
+{
+  id:7, title:"Binary Breadcrumbs", category:"CIPHER", diff:2,
+  briefing:"Recovered from a packet capture, an isolated string of ones and zeros.",
+  hints:[
+    "Each 8-digit group is one byte, and each byte maps to one character.",
+    "Convert each 8-bit group to decimal, then to its ASCII character. The Toolkit's Binary tool decodes the whole string at once."
+  ],
+  render: () => `<div class="puzzle-box"><span class="label">Packet fragment</span><span class="cipherval">01110011 01101001 01100111 01101110 01100001 01101100 01011111 01101100 01101111 01110011 01110100</span></div>`,
+  unlock: "CASE NOTE: This packet was the last thing transmitted from a field sensor node in Rotterdam before it stopped reporting entirely. Official logs blame a 'firmware fault.' The timestamp doesn't match any scheduled maintenance window.",
+  answerHash:"cd782a82120ceb7441d13818ddcc9f8e26a223cc33f97b427a66034e7b6caf70"
+},
+{
+  id:8, title:"First Login", category:"TERMINAL", diff:2,
+  briefing:"You've been handed shell access to a stripped-down diagnostic terminal. It won't bite. Try 'help' to see what it understands, then go looking.",
+  hints:[
+    "Try 'ls' to see what files exist here before you try to read anything.",
+    "Once you see a file listed, 'cat' it to print its contents — e.g. cat notes.txt"
+  ],
+  render: () => renderTerminal(8),
+  terminalFS: { type:'dir', children:{
+    'notes.txt': { type:'file', content:"Cold open. First rule of a live system: look before you type.\n\nAccess phrase: BIOBI{terminal_unlocked}" }
+  }},
+  unlock: "CASE NOTE: This terminal was left logged in on a maintenance laptop in an unlocked supply closet. Physical security was never BIOBI's strength. Digital security, it turns out, wasn't either.",
+  answerHash:"f1ffa280c34365ac723d343c9cbb780052cf18c4bb1f2fab1d677a619e08bd74"
+},
+{
+  id:9, title:"Half-Turned", category:"CIPHER", diff:2,
+  briefing:"A whiteboard photo, mid-erased, still legible. Whoever wrote it clearly wasn't worried about anyone reading it — which, in a way, is the whole point of this cipher.",
+  hints:[
+    "This cipher is its own reverse — apply the exact same operation twice and you're back where you started.",
+    "It's ROT13 — each letter shifted 13 places. Run the ciphertext through ROT13 again to decode it."
+  ],
+  render: () => `<div class="puzzle-box"><span class="label">Whiteboard remnant</span><span class="cipherval">gehgu_orarngu</span></div>`,
+  unlock: "CASE NOTE: An internal audit log — deleted, then partially recovered — shows Dr. Elena Cross accessed the Wraith root repository four times in her final week before her accounts went dark. Each access was longer than the last, as if she kept finding more.",
+  answerHash:"acdead8f9c3e6e19474e1293d224efa2a0aac6a861641a492e622c96edeff8e8"
+},
+{
+  id:10, title:"The Whiteboard Numbers", category:"LOGIC", diff:2,
+  briefing:"Written in the corner of the same whiteboard: 2, 3, 5, 7, 11, 13, 17, 19, 23. No label, no units — just the sequence, and beneath it, one word blanked out by a coffee ring: what family do these numbers belong to?",
+  hints:[
+    "Each number in the list can only be evenly divided by 1 and itself.",
+    "They're prime numbers. Submit the mathematical term for this family, one word, lowercase."
+  ],
+  render: () => `<div class="puzzle-box"><span class="label">Whiteboard corner</span><span class="cipherval">2, 3, 5, 7, 11, 13, 17, 19, 23</span></div>`,
+  unlock: "CASE NOTE: Wraith's internal build versions are all labeled with prime numbers — v2, v3, v5, v7, v11... Someone on the dev team apparently thought this was clever. It also means counting the builds tells you exactly how many revisions this surveillance tool has been through: nine, so far.",
+  answerHash:"f3ed9662cd7a28ab469303ff1e19a1ede70bb1b96b6f81268cd03e87d14a751e"
+},
+{
+  id:11, title:"Something's Listening", category:"CONSOLE", diff:3,
+  briefing:"Open your browser console (F12 → Console tab). This panel just wrote something there the moment you opened it. Read closely — it isn't finished talking.",
+  hints:[
+    "Check the console for a logged message, and look for a global variable it mentions. Try typing that variable's name directly into the console.",
+    "window.caseFile11 holds a string written backwards. Run caseFile11.split('').reverse().join('') directly in the console to read it."
+  ],
+  render: () => {
+    window.caseFile11 = "dnuof_roodkcab";
+    console.log("%cBIOBI DIAGNOSTIC","color:#ffb020;font-weight:bold;");
+    console.log("A fragment is cached in memory: window.caseFile11");
+    console.log("It's been written backwards. You know what to do.");
+    return `<div class="puzzle-box"><span class="label">Panel status</span>Console output triggered. This panel has nothing else to show — the evidence is in memory, not on screen.</div>`;
+  },
+  unlock: "CASE NOTE: BIOBI's own developers left debug variables like this scattered across production systems — a habit from testing nobody cleaned up before Wraith shipped to production municipal networks. Convenient, for anyone patient enough to look.",
+  answerHash:"0400919aa927bb0b493af7d4d12660ef2f2e15b27ad1209042a4b355fa2399c4"
+},
+{
+  id:12, title:"Locked Bytes", category:"CIPHER", diff:3,
+  briefing:"A short array of numbers recovered from a config file, each one a byte XORed against a single repeating key.",
+  hints:[
+    "XOR is reversible: applying the same key a second time restores the original value for each byte.",
+    "XOR every number with 42, then convert each result to its ASCII character. The Toolkit's single-key XOR tool accepts a comma-separated byte list."
+  ],
+  render: () => `<div class="puzzle-box"><span class="label">Config bytes (key: 42)</span><span class="cipherval">73, 67, 90, 66, 79, 88, 117, 95, 68, 70, 69, 73, 65, 79, 78</span></div>`,
+  unlock: "CASE NOTE: This config file controlled which municipal camera feeds Wraith could pull from without a warrant. The XOR key, '42', appears on a sticky note in a photo from a BIOBI engineer's public social media, taken eight months ago at his desk. Security through obscurity rarely survives Instagram.",
+  answerHash:"86a1e13f1f467066f0d59ca26a2065503cac908302a4e7894fe2c3e58b207b6b"
+},
+{
+  id:13, title:"Into Research", category:"TERMINAL", diff:3,
+  briefing:"A wider filesystem opens up in front of you — real folders this time, not just one file. Somewhere in here is what's left of a researcher's private notes. Navigate carefully.",
+  hints:[
+    "Start with 'ls' to see the top-level folders, then 'cd' into the one that sounds most relevant to a researcher.",
+    "Try: cd research, then ls again, then cat the file that looks personal rather than automated."
+  ],
+  render: () => renderTerminal(13),
+  terminalFS: { type:'dir', children:{
+    'README.txt': { type:'file', content:"Personnel divisions listed above. Investigate research." },
+    'research': { type:'dir', children:{
+      'elena_notes.txt': { type:'file', content:"Private log — E. Cross\nIf you're reading this, they already know I was close.\nRemember the name.\n\nBIOBI{elena_cross}" },
+      'backup.log': { type:'file', content:"backup rotation complete. 0 errors. next run scheduled." }
+    }},
+    'hr': { type:'dir', children:{ 'staff_directory.txt': { type:'file', content:"Directory withheld pending review." } } },
+    'finance': { type:'dir', children:{ 'q3_report.txt': { type:'file', content:"Figures redacted pending audit." } } }
+  }},
+  unlock: "CASE NOTE: Dr. Elena Cross's personnel file lists her as 'on extended leave, status: voluntary.' Her research partner disagrees, off the record: 'She didn't leave. She was erased from the calendar the same week she filed the internal complaint.'",
+  answerHash:"18dd30aaabb8a80b9868e09dfd0d293fe302eddee74a2cde74bfd390e0bf915f"
+},
+{
+  id:14, title:"Three Engineers, One Lie", category:"LOGIC", diff:3,
+  briefing:"Three engineers were on shift the night the Rotterdam sensor node went dark. Exactly one of them is lying.\n\n• Priya says: \"I was in the server room the whole shift.\"\n• Sam says: \"Priya is telling the truth.\"\n• Lars says: \"I was not in the server room at any point.\"\n\nBadge logs confirm only one person swiped into the server room that night — and that badge was Lars's, used twice. Who is lying?",
+  hints:[
+    "If Priya is telling the truth, what does that make Sam's statement — and does that fit with only one badge-holder in the room?",
+    "Badge logs show one entrant, and that badge was Lars's. That directly contradicts Lars's own statement. Submit his name, lowercase."
+  ],
+  render: () => `<div class="puzzle-box"><span class="label">Deduction</span>Submit the name of the liar, lowercase.</div>`,
+  unlock: "CASE NOTE: Lars's badge was used twice that night — once to enter, once for someone else to leave using his credentials after he'd already gone home. BIOBI's incident report calls this 'shared access under time pressure.' It doesn't explain why Lars's badge logged an exit six hours after Lars logged out of every other system.",
+  answerHash:"535b3f82306b58fb33a22d61da4002206fdcd4e2dd3865662dd9f5e3b3b9d487"
+},
+{
+  id:15, title:"Dots and Dashes", category:"CIPHER", diff:3,
+  briefing:"A distress pattern, transmitted in the oldest code still in active use.",
+  hints:[
+    "This is Morse code. Spaces separate letters; the group ..--.- represents a word-break character.",
+    "Decode each group using a Morse table. The Toolkit's Morse tool converts the whole string at once, underscore included."
+  ],
+  render: () => `<div class="puzzle-box"><span class="label">Distress pattern</span><span class="cipherval">-- .- -.-- -.. .- -.-- ..--.- ... .. --. -. .- .-..</span></div>`,
+  unlock: "CASE NOTE: This exact Morse pattern was found looping in an unused subroutine inside Wraith's core module — a distress signal, hidden inside the very system it was warning about. Someone built an alarm into the machine that was supposed to silence her.",
+  answerHash:"b1c5ce2b91a6909969a95936281dd1bf118667770c3a35c5acf332eb74a2f289"
+},
+{
+  id:16, title:"Inert, Not Empty", category:"SOURCE", diff:4,
+  briefing:"Not everything in a page is meant to render. Somewhere in this panel's structure sits a block of data the browser was told to ignore completely — which is exactly why nobody thought to remove it. Inspect deeper than usual.",
+  hints:[
+    "Look for a script tag with a type attribute that isn't 'text/javascript' — the browser won't execute it, but DevTools will still show you its contents.",
+    "Find the script tag with type=\"text/plain\" in the Elements panel and read its inner text — it's a small JSON blob containing the flag."
+  ],
+  render: () => `<div class="puzzle-box"><span class="label">Dashboard fragment (rendered output)</span>Status: nominal. No visible anomalies.
+<scr` + `ipt type="text/plain" id="inert-config">{"schema":"v3","flag":"BIOBI{config_extracted}","debug":false}<\/scr` + `ipt>
+</div>`,
+  unlock: "CASE NOTE: Wraith's actual configuration schema was found the same way — embedded as inert JSON inside a routine dashboard page, invisible to the rendered UI, invisible to anyone who wasn't already looking for exactly this trick.",
+  answerHash:"d93f3d6a00fa5f59db5b9b3ee2f5901db6a69979eff0c8481e6ce7625befc03d"
+},
+{
+  id:17, title:"Wrapped Twice", category:"CIPHER", diff:4,
+  briefing:"This one didn't come easy. Whoever encoded it layered two techniques, one inside the other.",
+  hints:[
+    "The outer layer is unmistakably Base64. Decode that first — but don't expect the result to make sense yet.",
+    "After Base64-decoding, you'll have a ROT13-scrambled string. Run it through ROT13 once more to get the plain flag word."
+  ],
+  render: () => `<div class="puzzle-box"><span class="label">Layered transmission</span><span class="cipherval">cWJob3lyX2plbmNjcnE=</span></div>`,
+  unlock: "CASE NOTE: Layered encoding like this shows up exactly once in BIOBI's entire codebase — in the function that packages location data before sending it to Meridian Holdings. Someone clearly didn't want a casual glance at network traffic to reveal what was actually being sent.",
+  answerHash:"504ac3bf9e4200924d8f05a58da9830fe3be737c460698fc719440ee5911bbca"
+},
+{
+  id:18, title:"Grep or Bust", category:"TERMINAL", diff:4,
+  briefing:"A logs directory, and it is not small. Reading every file by hand would take all night — which is exactly why the terminal understands 'grep <term> <target>'. Use it.",
+  hints:[
+    "First cd logs, then think about what unique word an internal flag entry might be tagged with.",
+    "Try: grep FLAG * — while inside the logs directory. It searches every file in the current folder for lines containing 'FLAG', case-insensitive."
+  ],
+  render: () => renderTerminal(18),
+  terminalFS: { type:'dir', children:{
+    'logs': { type:'dir', children:{
+      'access.log': { type:'file', content:
+        "10:02:14 GET /status 200\n10:02:19 GET /dashboard 200\n10:03:01 GET /api/nodes 200\n10:03:44 GET /api/feed?city=rotterdam 200\n10:04:02 GET /status 200\n10:05:10 POST /api/session 201\n10:06:33 GET /api/nodes 200\n10:07:12 GET /dashboard 200" },
+      'error.log': { type:'file', content:
+        "10:01:58 [WARN] cache miss on /api/feed\n10:02:40 [ERROR] uplink dropped, retry scheduled\n10:03:59 [WARN] slow query 812ms\n10:06:02 [ERROR] node rotterdam-04 timeout\n10:08:15 [WARN] cache miss on /api/nodes" },
+      'auth.log': { type:'file', content:
+        "10:00:01 [AUTH] token issued user=svc-monitor\n10:01:20 [AUTH] token issued user=svc-monitor\n10:02:45 [AUTH] login success user=j.omar\n10:04:10 [AUTH] token issued user=svc-monitor\n10:05:55 [AUDIT] token rotated by admin // FLAG: BIOBI{grep_master}\n10:07:30 [AUTH] token issued user=svc-monitor\n10:09:02 [AUTH] logout user=j.omar" }
+    }}
+  }},
+  customCommands: { grep: doGrep },
+  unlock: "CASE NOTE: Buried in three thousand lines of routine authentication noise is a single audit entry that shouldn't exist — proof someone rotated an access token specifically to cover a trail. Nobody reads log files that closely. That's exactly why it worked, until now.",
+  answerHash:"0af71efc9241c531f5f7a74cc58ac971627fb05120616972aa9a75cdd8514f79"
+},
+{
+  id:19, title:"The Lock Cycles", category:"LOGIC", diff:4,
+  briefing:"A keypad lock cycles through 24 possible states. A technician's maintenance note reads: \"Set value v so that (v × 7 + 3) mod 24 = 10.\" Only one value of v between 0 and 23 satisfies this. Find it, then submit your answer spelled out as a lowercase word (e.g. 'seven', not '7').",
+  hints:[
+    "Rearrange the equation: 7v ≡ 7 (mod 24). Since 7 and 24 share no common factors, there's exactly one solution in range.",
+    "v = 1 satisfies it: (1 × 7 + 3) = 10. Submit the word 'one'."
+  ],
+  render: () => `<div class="puzzle-box"><span class="label">Maintenance note</span>(v &times; 7 + 3) mod 24 = 10, for 0 &le; v &le; 23</div>`,
+  unlock: "CASE NOTE: This is the exact scheme used on a server-room keypad at BIOBI's secondary data center — deliberately unmemorable arithmetic instead of a static code, rotated weekly by a script nobody has audited in over a year.",
+  answerHash:"532ef5ccbc61f13df1c35ee9520736dde29ca3e4f0a53cc98441149d71b26646"
+},
+{
+  id:20, title:"Repeating Key", category:"CIPHER", diff:5,
+  briefing:"The hardest cipher yet: a repeating-key XOR, where the key cycles across the whole message instead of staying fixed.",
+  hints:[
+    "XOR each byte with the corresponding letter of the key, cycling the key from the start once you reach its end — byte 1 with G, byte 2 with H, byte 6 with G again, and so on.",
+    "Use the Toolkit's repeating-key XOR tool: paste the byte list and the key GHOST exactly as shown, then read the decoded result."
+  ],
+  render: () => `<div class="puzzle-box"><span class="label">Repeating-key transmission (key: GHOST)</span><span class="cipherval">40, 56, 42, 33, 53, 51, 33, 32, 61, 11, 48, 58, 46, 58, 32, 47</span></div>`,
+  unlock: "CASE NOTE: You have it now — the actual internal codename of the surveillance program: 'Operation Wraith.' Not a rumor, not a rounding error in a spreadsheet. A funded, staffed, nearly-shipped program to sell real-time access to municipal surveillance networks to a buyer BIOBI has refused to name in any internal document.",
+  answerHash:"1880d7c6f7c34d21d028d9f1b721e58b8ebe56d0ab5be66567cb64cde82c85e3"
+},
+{
+  id:21, title:"Elevated Access", category:"TERMINAL", diff:5,
+  briefing:"One terminal left. This one requires more than ls and cat. Something in here needs a proper connection attempt before it will show you anything useful.",
+  hints:[
+    "Read the README first — it tells you exactly what command to try next.",
+    "Run: ssh biobi-core. The session reconnects using stale but still-valid credentials and prints a base64-encoded welcome message. Decode that with the Toolkit to get the flag."
+  ],
+  render: () => renderTerminal(21),
+  terminalFS: { type:'dir', children:{
+    'README.txt': { type:'file', content:"Elevated access required.\nTry: ssh biobi-core" }
+  }},
+  customCommands: { ssh: doSSH, whoami: () => "ghost (unverified)" },
+  unlock: "CASE NOTE: 'Stale but still-valid credentials' is the exact phrase used in BIOBI's own post-incident report — written three years from now — to describe how the breach that finally ended Project Wraith actually began. You're not just investigating the future. You may be causing it.",
+  answerHash:"596b425ff920ff23bac79f549106c85f9e4eddf5837acce87548efb29e33efb5"
+},
+{
+  id:22, title:"Case Closed", category:"FINALE", diff:5,
+  briefing:"Every fragment you've recovered points the same direction. The Handler sends one final message:\n\n\"You have everything except the ending. BIOBI's board votes to finalize the Wraith sale in hours. Somewhere in everything you've already found is the one thing that stops them — not a code this time. A conclusion. What happens to a hidden truth, once enough people have finally seen it?\"",
+  hints:[
+    "This isn't a cipher to break. It's a question about what you've spent this entire investigation doing — dragging something out of hiding and into the light.",
+    "Think about the opposite of staying buried. Three words, lowercase, underscores between them."
+  ],
+  render: () => `<div class="puzzle-box"><span class="label">Final question</span>What happens to a hidden truth once enough people have seen it?</div>`,
+  unlock: "FINAL TRANSMISSION — THE HANDLER: 'It's done. Every file you recovered has been mirrored to six independent newsrooms and two regulators. BIOBI can deny Wraith all they want — they can't un-send what's already out. Dr. Cross is still missing. That part isn't finished. But the world now knows what BIOBI built, and what it was about to sell. That was never going to be you fixing everything. It was always going to be you making it impossible to keep hiding. Good work, ghost. Go dark.'",
+  answerHash:"96fb1532c734a691866ff5e7c3789174baf5c5c323409b69088d5d638008c82d"
+}
+];
+
+/* ============================================================
+   TERMINAL ENGINE
+   ============================================================ */
+const termState = {}; // id -> { path: [], history: [] }
+
+function fsGetNode(fs, path){
+  let node = fs;
+  for(const seg of path){
+    if(!node.children || !node.children[seg]) return null;
+    node = node.children[seg];
+  }
+  return node;
+}
+
+function doGrep(args, caseObj, cwdNode){
+  if(args.length < 2) return "usage: grep <term> <file|*>";
+  const term = args[0].toLowerCase();
+  const target = args[1];
+  let results = [];
+  const searchFile = (name, node) => {
+    if(node.type === 'file'){
+      node.content.split('\n').forEach(line => {
+        if(line.toLowerCase().includes(term)) results.push(`${name}: ${line}`);
+      });
+    }
+  };
+  if(target === '*'){
+    Object.keys(cwdNode.children || {}).forEach(name => {
+      const n = cwdNode.children[name];
+      if(n.type === 'file') searchFile(name, n);
+    });
+  } else {
+    const n = cwdNode.children && cwdNode.children[target];
+    if(!n) return `grep: ${target}: No such file`;
+    searchFile(target, n);
+  }
+  return results.length ? results.join('\n') : "(no matches)";
+}
+
+function doSSH(args){
+  if(args.join(' ') !== 'biobi-core'){
+    return "ssh: could not resolve host — try: ssh biobi-core";
+  }
+  return "Connecting to biobi-core...\nSession resumed — stale credentials still valid.\nWelcome, ghost.\n\nMOTD (base64):\nZmluYWxfYWNjZXNzX2tleQ==\n\nDecode the MOTD to recover the access phrase.";
+}
+
+function renderTerminal(caseId){
+  termState[caseId] = { path: [] };
+  return `
+  <div class="term" id="term-${caseId}">
+    <div class="term-out" id="term-out-${caseId}">BIOBI DIAGNOSTIC SHELL — type 'help' to begin\n</div>
+    <div class="term-line-in">
+      <span class="prefix">$</span>
+      <input type="text" id="term-in-${caseId}" autocomplete="off" spellcheck="false" placeholder="type a command..." />
+    </div>
+  </div>`;
+}
+
+function wireTerminal(caseObj){
+  const id = caseObj.id;
+  const input = document.getElementById(`term-in-${id}`);
+  const out = document.getElementById(`term-out-${id}`);
+  if(!input) return;
+  input.addEventListener('keydown', (e) => {
+    if(e.key !== 'Enter') return;
+    const raw = input.value;
+    input.value = '';
+    const args = raw.trim().split(/\s+/).filter(Boolean);
+    const cmd = (args[0]||'').toLowerCase();
+    const rest = args.slice(1);
+    const st = termState[id];
+    const cwdNode = fsGetNode(caseObj.terminalFS, st.path) || caseObj.terminalFS;
+    let response = '';
+
+    if(cmd === ''){ /* noop */ }
+    else if(cmd === 'help'){
+      response = "commands: ls, cd <dir>, cat <file>, pwd" + (caseObj.customCommands ? ", " + Object.keys(caseObj.customCommands).join(', ') : '');
+    } else if(cmd === 'pwd'){
+      response = '/' + st.path.join('/');
+    } else if(cmd === 'ls'){
+      const names = Object.keys(cwdNode.children || {});
+      response = names.length ? names.map(n => cwdNode.children[n].type === 'dir' ? n + '/' : n).join('  ') : '(empty)';
+    } else if(cmd === 'cd'){
+      if(rest[0] === '..'){ st.path.pop(); response = '/' + st.path.join('/'); }
+      else if(!rest[0]){ response = '/' + st.path.join('/'); }
+      else {
+        const target = cwdNode.children && cwdNode.children[rest[0]];
+        if(target && target.type === 'dir'){ st.path.push(rest[0]); response = '/' + st.path.join('/'); }
+        else { response = `cd: ${rest[0]}: No such directory`; }
+      }
+    } else if(cmd === 'cat'){
+      const target = cwdNode.children && cwdNode.children[rest[0]];
+      if(target && target.type === 'file'){ response = target.content; }
+      else { response = `cat: ${rest[0] || ''}: No such file`; }
+    } else if(caseObj.customCommands && caseObj.customCommands[cmd]){
+      response = caseObj.customCommands[cmd](rest, caseObj, cwdNode);
+    } else {
+      response = `command not found: ${cmd} — try 'help'`;
+    }
+
+    const cmdLine = `<span class="term-cmd">$ ${escapeHtml(raw)}</span>`;
+    const respLine = response ? escapeHtml(response) : '';
+    out.innerHTML += `\n${cmdLine}\n${respLine}`;
+    out.scrollTop = out.scrollHeight;
+  });
+}
+
+function escapeHtml(s){
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ============================================================
+   STATE / PROGRESS
+   ============================================================ */
+const state = {
+  captured: new Set(),
+  activeCase: 1,
+  hintsRevealed: {} // caseId -> count revealed
+};
+
+function encodeProgress(){
+  let bits = 0n;
+  state.captured.forEach(id => { bits |= (1n << BigInt(id-1)); });
+  let sum = 0;
+  state.captured.forEach(id => sum += id);
+  const checksum = sum % 97;
+  const code = bits.toString(36).toUpperCase() + '-' + checksum.toString(36).toUpperCase();
+  return 'BB-' + code;
+}
+
+function decodeProgress(code){
+  try{
+    const clean = code.trim().toUpperCase().replace(/^BB-/,'');
+    const [bitsPart, checkPart] = clean.split('-');
+    if(!bitsPart || !checkPart) return false;
+    const bits = BigInt('0x' + BigInt(parseInt(bitsPart,36)).toString(16));
+    // rebuild properly using base36 parse
+    const bitsVal = BigInt(parseBase36(bitsPart));
+    const expectedCheck = parseInt(checkPart,36);
+    const ids = [];
+    for(let i=0;i<22;i++){
+      if((bitsVal >> BigInt(i)) & 1n){ ids.push(i+1); }
+    }
+    const sum = ids.reduce((a,b)=>a+b,0);
+    if((sum % 97) !== expectedCheck) return false;
+    state.captured = new Set(ids);
+    return true;
+  } catch(e){ return false; }
+}
+
+function parseBase36(str){
+  let val = 0n;
+  const digits = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  for(const ch of str){
+    const d = digits.indexOf(ch);
+    if(d < 0) throw new Error('bad char');
+    val = val * 36n + BigInt(d);
+  }
+  return val;
+}
+
+/* ============================================================
+   RENDERING: SIDEBAR
+   ============================================================ */
+function renderSidebar(){
+  const list = document.getElementById('case-list');
+  list.innerHTML = CASES.map(c => {
+    const solved = state.captured.has(c.id);
+    const dots = '●'.repeat(c.diff) + '○'.repeat(5-c.diff);
+    return `
+    <div class="case-tab ${solved?'solved':''} ${state.activeCase===c.id?'active':''}" data-case="${c.id}" tabindex="0" role="button" aria-label="File ${String(c.id).padStart(2,'0')}: ${c.title}${solved?' (recovered)':''}">
+      <div class="case-seal">${solved ? '✓' : '?'}</div>
+      <div class="case-meta">
+        <div class="case-file-no">File №${String(c.id).padStart(2,'0')} · ${c.category}</div>
+        <div class="case-title">${c.title}</div>
+        <div class="case-dots">${dots}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  list.querySelectorAll('.case-tab').forEach(tab => {
+    const open = () => { state.activeCase = parseInt(tab.dataset.case,10); renderAll(); };
+    tab.addEventListener('click', open);
+    tab.addEventListener('keydown', e => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); open(); } });
+  });
+}
+
+/* ============================================================
+   RENDERING: MAIN PANEL
+   ============================================================ */
+function renderMain(){
+  const main = document.getElementById('main');
+  const c = CASES.find(x => x.id === state.activeCase);
+  if(!c){ main.innerHTML = ''; return; }
+  const solved = state.captured.has(c.id);
+  const dots = '●'.repeat(c.diff) + '○'.repeat(5-c.diff);
+  const hintsCount = state.hintsRevealed[c.id] || 0;
+
+  main.innerHTML = `
+    <div class="file-eyebrow">
+      <span>FILE №${String(c.id).padStart(2,'0')}</span>
+      <span class="tag-chip">${c.category}</span>
+      <span class="dots-chip">${dots}</span>
+    </div>
+    <h1 class="case-heading">${c.title}</h1>
+    <div class="briefing">${c.briefing}</div>
+    <div id="puzzle-render">${c.render()}</div>
+    <div class="hints" id="hints-${c.id}">
+      ${c.hints.map((h,i) => i < hintsCount ? '' : `<button class="hint-btn" data-hint="${i}">Reveal Hint ${i+1}</button>`).join('')}
+    </div>
+    <div id="hint-texts-${c.id}">
+      ${c.hints.slice(0,hintsCount).map(h => `<div class="hint-text">${h}</div>`).join('')}
+    </div>
+    <div class="submit-row">
+      <div class="prompt-wrap">
+        <span class="prefix">biobi@wraith:~$ submit</span>
+        <input type="text" id="flag-input" placeholder="BIOBI{...}" ${solved?'disabled':''} value="${solved?'✓ captured':''}" />
+      </div>
+      <button class="btn primary" id="submit-btn" ${solved?'disabled':''}>${solved?'Recovered':'Verify'}</button>
+    </div>
+    <div class="feedback" id="feedback"></div>
+    <div class="dossier-unlock" id="dossier" style="${solved?'display:block':''}">
+      <span class="du-label">Dossier Entry Unlocked</span>${c.unlock}
+    </div>
+  `;
+
+  if(c.category === 'TERMINAL'){ wireTerminal(c); }
+  if(c.category === 'CONSOLE'){ /* render() already logged to console */ }
+
+  main.querySelectorAll('.hint-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.hint,10);
+      state.hintsRevealed[c.id] = Math.max(state.hintsRevealed[c.id]||0, idx+1);
+      renderMain();
+    });
+  });
+
+  const submitBtn = document.getElementById('submit-btn');
+  const flagInput = document.getElementById('flag-input');
+  if(!solved){
+    const attempt = () => checkFlag(c, flagInput.value);
+    submitBtn.addEventListener('click', attempt);
+    flagInput.addEventListener('keydown', e => { if(e.key === 'Enter') attempt(); });
+  }
+}
+
+async function checkFlag(c, value){
+  const feedback = document.getElementById('feedback');
+  const cleaned = (value || '').trim().toLowerCase();
+  if(!cleaned){ feedback.textContent = 'Enter a flag before verifying.'; feedback.className = 'feedback bad'; return; }
+  const hash = await sha256Hex(cleaned);
+  if(hash === c.answerHash){
+    state.captured.add(c.id);
+    feedback.textContent = 'ACCESS GRANTED — evidence logged.';
+    feedback.className = 'feedback ok';
+    renderSidebar();
+    renderMain();
+    updateProgress();
+    if(state.captured.size === CASES.length){ setTimeout(showFinale, 600); }
+  } else {
+    feedback.textContent = 'ACCESS DENIED — that phrase does not match this file.';
+    feedback.className = 'feedback bad';
+  }
+}
+
+function updateProgress(){
+  document.getElementById('progress-display').textContent = `${state.captured.size} / ${CASES.length}`;
+}
+
+function showFinale(){
+  const main = document.getElementById('main');
+  main.innerHTML = `
+    <div class="welcome-panel">
+      <div class="file-eyebrow"><span class="tag-chip">CASE STATUS: CLOSED</span></div>
+      <h1>All 22 files recovered.</h1>
+      <p>You pulled every thread The Handler pointed you toward, and a few they didn't. Project Wraith is exposed. BIOBI has a great deal to answer for, and — for the first time in this entire investigation — so does the world that now knows what to ask.</p>
+      <div class="stat-row">
+        <div class="stat"><b>22 / 22</b><span>Files Recovered</span></div>
+        <div class="stat"><b>${sumHintsUsed()}</b><span>Hints Used</span></div>
+      </div>
+      <p style="color:var(--paper-dim); font-size:14px;">Case file BB-WRAITH is now closed. Thank you for running the investigation. Go dark.</p>
+    </div>
+  `;
+}
+
+function sumHintsUsed(){
+  return Object.values(state.hintsRevealed).reduce((a,b)=>a+b,0);
+}
+
+function renderAll(){
+  renderSidebar();
+  renderMain();
+  updateProgress();
+}
+
+/* ============================================================
+   TOOLKIT
+   ============================================================ */
+function buildToolkit(){
+  const wrap = document.getElementById('toolkit-tools');
+  wrap.innerHTML = `
+    <div class="tk-tool">
+      <h3>Base64</h3>
+      <label>Input</label><textarea rows="2" id="tk-b64-in"></textarea>
+      <div class="tk-row"><button class="btn" id="tk-b64-dec">Decode</button><button class="btn" id="tk-b64-enc">Encode</button></div>
+      <div class="tk-out" id="tk-b64-out"></div>
+    </div>
+    <div class="tk-tool">
+      <h3>Hexadecimal</h3>
+      <label>Input</label><textarea rows="2" id="tk-hex-in"></textarea>
+      <div class="tk-row"><button class="btn" id="tk-hex-dec">Decode</button><button class="btn" id="tk-hex-enc">Encode</button></div>
+      <div class="tk-out" id="tk-hex-out"></div>
+    </div>
+    <div class="tk-tool">
+      <h3>ROT13</h3>
+      <label>Input</label><textarea rows="2" id="tk-rot-in"></textarea>
+      <div class="tk-row"><button class="btn" id="tk-rot-run">Transform</button></div>
+      <div class="tk-out" id="tk-rot-out"></div>
+    </div>
+    <div class="tk-tool">
+      <h3>Caesar Shift</h3>
+      <label>Input</label><textarea rows="2" id="tk-cae-in"></textarea>
+      <label>Shift (forward)</label><input type="number" id="tk-cae-shift" value="7" />
+      <div class="tk-row"><button class="btn" id="tk-cae-dec">Decode (shift back)</button><button class="btn" id="tk-cae-enc">Encode (shift forward)</button></div>
+      <div class="tk-out" id="tk-cae-out"></div>
+    </div>
+    <div class="tk-tool">
+      <h3>Binary</h3>
+      <label>Input</label><textarea rows="2" id="tk-bin-in"></textarea>
+      <div class="tk-row"><button class="btn" id="tk-bin-dec">Decode</button><button class="btn" id="tk-bin-enc">Encode</button></div>
+      <div class="tk-out" id="tk-bin-out"></div>
+    </div>
+    <div class="tk-tool">
+      <h3>Morse Code</h3>
+      <label>Input</label><textarea rows="2" id="tk-mor-in"></textarea>
+      <div class="tk-row"><button class="btn" id="tk-mor-dec">Decode</button><button class="btn" id="tk-mor-enc">Encode</button></div>
+      <div class="tk-out" id="tk-mor-out"></div>
+    </div>
+    <div class="tk-tool">
+      <h3>XOR — Single Numeric Key</h3>
+      <label>Bytes (comma-separated) or plain text</label><textarea rows="2" id="tk-xor-in"></textarea>
+      <label>Key (0–255)</label><input type="number" id="tk-xor-key" value="42" />
+      <div class="tk-row"><button class="btn" id="tk-xor-tobytes">Bytes → Text</button><button class="btn" id="tk-xor-totext">Text → Bytes</button></div>
+      <div class="tk-out" id="tk-xor-out"></div>
+    </div>
+    <div class="tk-tool">
+      <h3>XOR — Repeating Text Key</h3>
+      <label>Bytes (comma-separated)</label><textarea rows="2" id="tk-xrk-in"></textarea>
+      <label>Key (text)</label><input type="text" id="tk-xrk-key" value="GHOST" />
+      <div class="tk-row"><button class="btn" id="tk-xrk-run">Bytes → Text</button></div>
+      <div class="tk-out" id="tk-xrk-out"></div>
+    </div>
+  `;
+
+  const get = id => document.getElementById(id);
+  get('tk-b64-dec').onclick = () => { get('tk-b64-out').textContent = Codec.b64decode(get('tk-b64-in').value) ?? '(invalid base64)'; };
+  get('tk-b64-enc').onclick = () => { get('tk-b64-out').textContent = Codec.b64encode(get('tk-b64-in').value); };
+
+  get('tk-hex-dec').onclick = () => { get('tk-hex-out').textContent = Codec.hexDecode(get('tk-hex-in').value) ?? '(invalid hex)'; };
+  get('tk-hex-enc').onclick = () => { get('tk-hex-out').textContent = Codec.hexEncode(get('tk-hex-in').value); };
+
+  get('tk-rot-run').onclick = () => { get('tk-rot-out').textContent = Codec.rot13(get('tk-rot-in').value); };
+
+  get('tk-cae-dec').onclick = () => { get('tk-cae-out').textContent = Codec.caesar(get('tk-cae-in').value, -parseInt(get('tk-cae-shift').value||0,10)); };
+  get('tk-cae-enc').onclick = () => { get('tk-cae-out').textContent = Codec.caesar(get('tk-cae-in').value, parseInt(get('tk-cae-shift').value||0,10)); };
+
+  get('tk-bin-dec').onclick = () => { get('tk-bin-out').textContent = Codec.fromBinary(get('tk-bin-in').value) ?? '(invalid binary)'; };
+  get('tk-bin-enc').onclick = () => { get('tk-bin-out').textContent = Codec.toBinary(get('tk-bin-in').value); };
+
+  get('tk-mor-dec').onclick = () => { get('tk-mor-out').textContent = Codec.fromMorse(get('tk-mor-in').value); };
+  get('tk-mor-enc').onclick = () => { get('tk-mor-out').textContent = Codec.toMorse(get('tk-mor-in').value); };
+
+  get('tk-xor-tobytes').onclick = () => {
+    const bytes = Codec.xorSingle(get('tk-xor-in').value, parseInt(get('tk-xor-key').value||0,10), true);
+    get('tk-xor-out').textContent = Codec.bytesToText(bytes);
+  };
+  get('tk-xor-totext').onclick = () => {
+    const bytes = Codec.xorSingle(get('tk-xor-in').value, parseInt(get('tk-xor-key').value||0,10), false);
+    get('tk-xor-out').textContent = bytes.join(', ');
+  };
+
+  get('tk-xrk-run').onclick = () => {
+    const bytes = Codec.xorRepeating(get('tk-xrk-in').value, get('tk-xrk-key').value || '');
+    get('tk-xrk-out').textContent = Codec.bytesToText(bytes);
+  };
+}
+
+function openToolkit(){ document.getElementById('toolkit').classList.add('open'); document.getElementById('toolkit-overlay').classList.add('open'); }
+function closeToolkit(){ document.getElementById('toolkit').classList.remove('open'); document.getElementById('toolkit-overlay').classList.remove('open'); }
+
+/* ============================================================
+   DEAL CLOCK (cosmetic countdown)
+   ============================================================ */
+function startClock(){
+  let totalSeconds = 2*3600 + 59*60 + 59;
+  const display = document.getElementById('clock-display');
+  setInterval(() => {
+    if(totalSeconds > 0) totalSeconds--;
+    const h = Math.floor(totalSeconds/3600).toString().padStart(2,'0');
+    const m = Math.floor((totalSeconds%3600)/60).toString().padStart(2,'0');
+    const s = Math.floor(totalSeconds%60).toString().padStart(2,'0');
+    display.textContent = `${h}:${m}:${s}`;
+  }, 1000);
+}
+
+/* ============================================================
+   BOOT SEQUENCE
+   ============================================================ */
+const bootScript = [
+  "BIOBI SECURE RELAY — connecting...",
+  "...",
+  "connection established via 4 relays. origin masked.",
+  "",
+  "you don't know who The Handler is. that's the point.",
+  "the message was three lines long:",
+  "",
+  "  'BIOBI is not what they sell you.",
+  "   there's a program inside their systems called Wraith.",
+  "   twenty-two pieces of evidence exist. find them. bring them into the light.'",
+  "",
+  "no name. no return address. just a login, and a warning:",
+  "  this terminal will not remember you if you close it.",
+  "  before you finish, write down your resume code.",
+  "",
+  "case file BB-WRAITH is now open.",
+  ""
+];
+
+function runBoot(){
+  const el = document.getElementById('boot-lines');
+  const enter = document.getElementById('boot-enter');
+  let i = 0, text = '';
+  function typeLine(){
+    if(i >= bootScript.length){
+      enter.style.display = 'block';
+      return;
+    }
+    const line = bootScript[i];
+    let j = 0;
+    const speed = line.length === 0 ? 0 : 10;
+    function typeChar(){
+      if(j <= line.length){
+        el.innerHTML = text + line.slice(0,j) + '<span class="boot-cursor"></span>';
+        j++;
+        setTimeout(typeChar, speed);
+      } else {
+        text += line + '\n';
+        i++;
+        setTimeout(typeLine, 90);
+      }
+    }
+    typeChar();
+  }
+  typeLine();
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+function init(){
+  buildToolkit();
+  document.getElementById('toolkit-btn').addEventListener('click', openToolkit);
+  document.getElementById('tk-close-btn').addEventListener('click', closeToolkit);
+  document.getElementById('toolkit-overlay').addEventListener('click', closeToolkit);
+
+  document.getElementById('save-code-btn').addEventListener('click', () => {
+    const code = encodeProgress();
+    prompt('Your resume code — copy this somewhere safe. Paste it back in via "Resume Code" on the boot screen (reload the page) to restore progress:', code);
+  });
+
+  document.getElementById('boot-begin-btn').addEventListener('click', () => {
+    document.getElementById('boot').style.display = 'none';
+    document.getElementById('app').style.display = 'grid';
+    startClock();
+    renderAll();
+  });
+
+  document.getElementById('boot-resume-link').addEventListener('click', () => {
+    const code = prompt('Enter your resume code:');
+    if(code){
+      const ok = decodeProgress(code);
+      if(!ok){ alert('That code could not be verified. Starting fresh.'); state.captured = new Set(); }
+    }
+    document.getElementById('boot').style.display = 'none';
+    document.getElementById('app').style.display = 'grid';
+    startClock();
+    renderAll();
+  });
+
+  runBoot();
+}
+
+document.addEventListener('DOMContentLoaded', init);
+})();
+</script>
+</body>
+</html>
