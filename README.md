@@ -1,4 +1,4 @@
-# NEXUS // Breach File
+# BIOBI // Breach File
 
 A browser-based hacking puzzle game built for IT students. Investigate a fictional corporation, recover 22 pieces of evidence, and put the story together — no installs, no backend, just a single HTML file.
 
@@ -8,7 +8,7 @@ A browser-based hacking puzzle game built for IT students. Investigate a fiction
 
 ## What is this?
 
-You've been anonymously recruited to investigate a corporation called NEXUS. Twenty-two pieces of evidence are scattered across a single web page, each protected by a different technique. Find them, decode them, and submit each one in the format `NEXUS{...}` to unlock the next fragment of the story.
+You've been anonymously recruited to investigate a corporation called BIOBI. Twenty-two pieces of evidence are scattered across a single web page, each protected by a different technique. Find them, decode them, and submit each one in the format `BIOBI{...}` to unlock the next fragment of the story.
 
 There are no numbered "levels" — every case file is open from the start, and you can tackle them in any order. They're arranged roughly from easiest to hardest, but the game won't stop you from jumping ahead (or getting stuck).
 
@@ -35,21 +35,21 @@ Every case includes two optional hints if you get stuck, so it's meant to teach 
 
 No setup required.
 
-1. Download `nexus-breach-file.html` (or clone this repo)
+1. Download `biobi-breach-file.html` (or clone this repo)
 2. Open the file directly in any modern browser (Chrome, Firefox, Edge, Safari)
 3. Click **Begin Investigation** and start looking for the first case
 
-If you're hosting it (GitHub Pages, Netlify, etc.), just point your host at `nexus-breach-file.html` — it works as a static site with zero configuration.
+If you're hosting it (GitHub Pages, Netlify, etc.), just point your host at `biobi-breach-file.html` — it works as a static site with zero configuration.
 
 ```bash
 git clone <this-repo-url>
 cd <repo-folder>
-open nexus-breach-file.html   # or just double-click it
+open biobi-breach-file.html   # or just double-click it
 ```
 
 ## How to play
 
-- Every case has a **briefing** (the puzzle) and a **flag input** (the answer, formatted `NEXUS{your_answer}`)
+- Every case has a **briefing** (the puzzle) and a **flag input** (the answer, formatted `BIOBI{your_answer}`)
 - Some cases want you to read the page's underlying structure — right-click and choose **Inspect**, or press F12, to open your browser's Developer Tools
 - Some cases want you to open the **Console** tab in Developer Tools and read what's printed there
 - The **Toolkit** button (top right) gives you decoding tools for common ciphers — you'll need to figure out which tool fits which case
@@ -72,7 +72,7 @@ Works in any modern browser with support for the Web Crypto API (`crypto.subtle`
 
 ```
 .
-└── nexus-breach-file.html   # the entire game — HTML, CSS, and JS in one file
+└── biobi-breach-file.html   # the entire game — HTML, CSS, and JS in one file
 ```
 
 ## Contributing / feedback
